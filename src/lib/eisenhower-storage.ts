@@ -5,15 +5,49 @@ export type Task = {
   urgency: number; // 0-100
   importance: number; // 0-100
   subtasks: Task[];
+  nestedMatrixId?: string;
+  nestMode?: "link" | "copy";
+  schedule?: MatrixSchedule;
+  isCompleted?: boolean;
+  parentId?: string | null;
 };
 
 export type CompletedTask = Task & {
   completedAt: number;
+  parentId?: string | null;
 };
 
 export type EisenhowerState = {
   tasks: Task[];
   completedTasks: CompletedTask[];
+};
+
+export type MatrixSchedule = {
+  type: "none" | "one-time" | "daily" | "weekly" | "monthly" | "custom";
+  activeAt?: number;
+  dueAt?: number;
+  lastResetAt?: number;
+  customMethod?: "daysOfWeek" | "daysOfMonth" | "intervalDays";
+  intervalDays?: number; // Custom interval in days: e.g. 3
+  customDays?: number[]; // Days of month: e.g. [1, 15, 30]
+  customDaysOfWeek?: number[]; // 0=Sun, 1=Mon, 2=Tue, ..., 6=Sat
+};
+
+export type MatrixDoc = {
+  id: string;
+  name: string;
+  description?: string;
+  ownerId: string;
+  ownerEmail?: string;
+  memberUids: string[];
+  sharedEmails: string[];
+  collaboratorRoles?: { [email: string]: "viewer" | "editor" };
+  schedule?: MatrixSchedule;
+  tasks: Task[];
+  completedTasks: CompletedTask[];
+  createdAt: number;
+  updatedAt: number;
+  isNestedOnly?: boolean;
 };
 
 /** @deprecated Legacy shape — used only when migrating saved data. */
@@ -30,7 +64,7 @@ type LegacyEisenhowerState = {
 };
 
 const KEY = "eisenhower_matrix_app_v1_state";
-export const MAX_COMPLETED_TASKS = 10;
+export const MAX_COMPLETED_TASKS = 20;
 
 export function loadState(): EisenhowerState {
   try {
@@ -77,10 +111,27 @@ export function uid() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
+export function cleanForFirestore<T>(data: T): T {
+  return JSON.parse(JSON.stringify(data));
+}
+
+export function cloneTaskTreeWithNewIds(tasks: Task[], newParentId: string | null = null): Task[] {
+  return tasks.map((t) => {
+    const newId = uid();
+    const cloned: Task = {
+      ...t,
+      id: newId,
+      parentId: newParentId,
+      subtasks: cloneTaskTreeWithNewIds(t.subtasks ?? [], newId),
+    };
+    return cleanForFirestore(cloned);
+  });
+}
+
 export function createTask(
-  partial: Pick<Task, "name"> & Partial<Omit<Task, "id" | "name" | "subtasks">>,
+  partial: Pick<Task, "name"> & Partial<Omit<Task, "id" | "name">>,
 ): Task {
-  return {
+  const task: Task = {
     id: uid(),
     name: partial.name,
     description: partial.description ?? "",
@@ -88,10 +139,16 @@ export function createTask(
     importance: partial.importance ?? 50,
     subtasks: partial.subtasks ?? [],
   };
+  if (partial.nestedMatrixId) task.nestedMatrixId = partial.nestedMatrixId;
+  if (partial.nestMode) task.nestMode = partial.nestMode;
+  if (partial.schedule) task.schedule = partial.schedule;
+  if (partial.isCompleted !== undefined) task.isCompleted = partial.isCompleted;
+  if (partial.parentId !== undefined) task.parentId = partial.parentId;
+  return cleanForFirestore(task);
 }
 
-function migrateTask(task: Task): Task {
-  const raw = task as Task & { subtasks?: Task[] };
+function migrateTask<T extends Task>(task: T): T {
+  const raw = task as T & { subtasks?: Task[] };
   return {
     ...raw,
     subtasks: (raw.subtasks ?? []).map(migrateTask),
@@ -102,6 +159,17 @@ export function findTask(state: EisenhowerState, taskId: string): Task | null {
   for (const task of state.tasks) {
     const found = findTaskInTree(task, taskId);
     if (found) return found;
+  }
+  return null;
+}
+
+export function findTaskParentId(tasks: Task[], taskId: string, currentParentId: string | null = null): string | null {
+  for (const task of tasks) {
+    if (task.id === taskId) return currentParentId;
+    if (task.subtasks && task.subtasks.length > 0) {
+      const found = findTaskParentId(task.subtasks, taskId, task.id);
+      if (found !== null) return found;
+    }
   }
   return null;
 }
@@ -177,14 +245,27 @@ export function addTask(
   parentId: string | null,
   task: Task,
 ): EisenhowerState {
-  if (!parentId) return { ...state, tasks: [...state.tasks, task] };
-  return mapTask(state, parentId, (t) => ({ ...t, subtasks: [...t.subtasks, task] }));
+  const taskWithParent = { ...task, parentId: parentId ?? null };
+  if (!parentId) return { ...state, tasks: [...state.tasks, taskWithParent] };
+  return mapTask(state, parentId, (t) => ({ ...t, subtasks: [...t.subtasks, taskWithParent] }));
 }
 
-export function completeTask(state: EisenhowerState, taskId: string): EisenhowerState {
+export function completeTask(
+  state: EisenhowerState,
+  taskId: string,
+  _matrixSchedule?: MatrixSchedule,
+): EisenhowerState {
   const task = findTask(state, taskId);
   if (!task) return state;
-  const completed: CompletedTask = { ...task, completedAt: Date.now() };
+
+  const parentId = findTaskParentId(state.tasks, taskId) ?? task.parentId ?? null;
+  const completed: CompletedTask = {
+    ...task,
+    parentId,
+    isCompleted: true,
+    completedAt: Date.now(),
+  };
+
   return {
     ...state,
     tasks: removeTaskFromList(state.tasks, taskId),
@@ -196,9 +277,29 @@ export function reinstateTask(state: EisenhowerState, taskId: string): Eisenhowe
   const completed = state.completedTasks.find((t) => t.id === taskId);
   if (!completed) return state;
   const { completedAt: _, ...task } = completed;
+  const restoredTask: Task = { ...task, isCompleted: false };
+  const parentId = completed.parentId ?? restoredTask.parentId ?? null;
+
+  let nextTasks = state.tasks;
+  if (parentId && findTask(state, parentId)) {
+    nextTasks = mapTask(state, parentId, (t) => ({
+      ...t,
+      subtasks: [...(t.subtasks ?? []), restoredTask],
+    })).tasks;
+  } else {
+    nextTasks = [...state.tasks, restoredTask];
+  }
+
   return {
     ...state,
-    tasks: [...state.tasks, task],
+    tasks: nextTasks,
+    completedTasks: state.completedTasks.filter((t) => t.id !== taskId),
+  };
+}
+
+export function deleteTask(state: EisenhowerState, taskId: string): EisenhowerState {
+  return {
+    tasks: removeTaskFromList(state.tasks, taskId),
     completedTasks: state.completedTasks.filter((t) => t.id !== taskId),
   };
 }

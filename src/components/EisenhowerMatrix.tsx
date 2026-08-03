@@ -26,7 +26,8 @@ type Props = {
   onDrillInto?: (id: string) => void;
 };
 
-function quadrantColor(u: number, i: number) {
+export function quadrantColor(u: number, i: number) {
+  if (u === 50 && i === 50) return "var(--primary)";
   if (u >= 50 && i >= 50) return "var(--q1)";
   if (u < 50 && i >= 50) return "var(--q2)";
   if (u >= 50 && i < 50) return "var(--q3)";

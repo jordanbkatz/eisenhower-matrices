@@ -1,6 +1,7 @@
-@import "tailwindcss" source(none);
-@source "../src";
-@import "tw-animate-css";
+@import "tailwindcss";
+@import "./styles.scss";
+
+
 
 @custom-variant dark (&:is(.dark *));
 
@@ -60,7 +61,7 @@
   --q1: oklch(0.7 0.2 25);    /* Do - red/orange (urgent + important) */
   --q2: oklch(0.75 0.17 150); /* Schedule - green (important, not urgent) */
   --q3: oklch(0.78 0.15 80);  /* Delegate - yellow (urgent, not important) */
-  --q4: oklch(0.6 0.04 270);  /* Eliminate - gray */
+  --q4: oklch(0.65 0.18 245); /* Eliminate - blue (not urgent, not important) */
 }
 
 @layer base {
@@ -82,3 +83,4 @@
     overflow-x: hidden;
   }
 }
+
