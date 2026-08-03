@@ -39,5 +39,11 @@ npm run dev
 npm run build
 ```
 
+## Build & Deployment
+
+- **Build Script**: `npm run build`
+- **Output Directory**: `dist`
+- **Cloudflare Routing**: Configured via `public/_redirects` for Single Page Application routing (`/* /index.html 200`).
+
 ---
 *a Jordan Katz project*
