@@ -1,4 +1,89 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="3" y="3" width="18" height="18" rx="3" fill="#1e1b4b"/>
-  <path d="M12 3v18M3 12h18" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Canvas Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <!-- Quadrant 1: DO FIRST (Urgent & Important) - Red/Rose -->
+    <linearGradient id="q1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+
+    <!-- Quadrant 2: SCHEDULE (Important, Not Urgent) - Cyan/Blue -->
+    <linearGradient id="q2Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+
+    <!-- Quadrant 3: DELEGATE (Urgent, Not Important) - Amber/Orange -->
+    <linearGradient id="q3Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Quadrant 4: DELETE (Not Urgent, Not Important) - Violet/Purple -->
+    <linearGradient id="q4Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#7e22ce"/>
+    </linearGradient>
+
+    <!-- Soft Glow Filter -->
+    <filter id="matrixGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Outer Background Container -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  
+  <!-- Outer Subtle Ring -->
+  <rect x="24" y="24" width="464" height="464" rx="108" fill="none" stroke="#475569" stroke-width="4" stroke-opacity="0.4"/>
+
+  <!-- Matrix Grid Outer Frame -->
+  <rect x="76" y="76" width="360" height="360" rx="36" fill="#090d16" stroke="#334155" stroke-width="4"/>
+
+  <!-- 4 Eisenhower Quadrant Cards -->
+  
+  <!-- Q1 (Top-Left): DO NOW (Urgent & Important) -->
+  <g filter="url(#matrixGlow)">
+    <rect x="92" y="92" width="156" height="156" rx="24" fill="url(#q1Grad)"/>
+    <!-- Q1 Icon: Lightning / Exclamation Star -->
+    <path d="M 170 132 L 150 172 H 175 L 165 208 L 200 162 H 175 Z" fill="#ffffff"/>
+  </g>
+
+  <!-- Q2 (Top-Right): SCHEDULE (Important) -->
+  <g opacity="0.9">
+    <rect x="264" y="92" width="156" height="156" rx="24" fill="url(#q2Grad)"/>
+    <!-- Q2 Icon: Calendar Clock -->
+    <circle cx="342" cy="170" r="32" fill="none" stroke="#ffffff" stroke-width="8"/>
+    <path d="M 342 152 V 170 L 358 178" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- Q3 (Bottom-Left): DELEGATE (Urgent) -->
+  <g opacity="0.9">
+    <rect x="92" y="264" width="156" height="156" rx="24" fill="url(#q3Grad)"/>
+    <!-- Q3 Icon: User Delegate Arrow -->
+    <circle cx="170" cy="326" r="18" fill="none" stroke="#ffffff" stroke-width="8"/>
+    <path d="M 140 370 C 140 350 155 344 170 344 C 185 344 200 350 200 370" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- Q4 (Bottom-Right): DON'T DO (Low Priority) -->
+  <g opacity="0.75">
+    <rect x="264" y="264" width="156" height="156" rx="24" fill="url(#q4Grad)"/>
+    <!-- Q4 Icon: Clean Tray / Checkmark -->
+    <path d="M 317 342 L 337 362 L 372 322" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Central Quadrant Axis Divider Line (Glowing Gold/White Core) -->
+  <line x1="256" y1="76" x2="256" y2="436" stroke="#0f172a" stroke-width="12"/>
+  <line x1="76" y1="256" x2="436" y2="256" stroke="#0f172a" stroke-width="12"/>
+
+  <!-- Center Focal Axis Badge -->
+  <circle cx="256" cy="256" r="28" fill="#090d16" stroke="#94a3b8" stroke-width="4" filter="url(#matrixGlow)"/>
+  <circle cx="256" cy="256" r="12" fill="#38bdf8"/>
 </svg>
